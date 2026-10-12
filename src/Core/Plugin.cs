@@ -1,12 +1,16 @@
+using System;
+using System.Collections;
 using BepInEx;
 using BepInEx.Configuration;
 using BepInEx.Logging;
+using BepInEx.Unity.IL2CPP;
+using BepInEx.Unity.IL2CPP.Utils;
 using HarmonyLib;
 using UnityEngine;
 
 namespace DynamicMapsExtended
 {
-    [BepInPlugin("com.blackhawk.dynamicmapsextended", "DynamicMaps Extended", "2.1.0")]
+    [BepInPlugin("com.blackhawk.dynamicmapsextended", "DynamicMaps Extended", "3.0.0")]
     [BepInDependency("com.mpstark.dynamicmaps", BepInDependency.DependencyFlags.HardDependency)]
     [BepInDependency("com.lennoxp90.mapvariants", BepInDependency.DependencyFlags.HardDependency)]
     [BepInDependency("com.lennoxp90.factoryclassic", BepInDependency.DependencyFlags.SoftDependency)]
@@ -15,14 +19,14 @@ namespace DynamicMapsExtended
     [BepInDependency("com.manimal.labsboiler", BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency("com.manimal.icebreaker", BepInDependency.DependencyFlags.SoftDependency)]
     // Soft dependency is intentional: when Fika Headless is installed, BepInEx loads it
-    // before this plugin so the guard at the very start of Awake() can disable all
+    // before this plugin so the guard at the very start of Load() can disable all
     // DynamicMaps Extended client/UI work before patches or artwork workers begin.
     [BepInDependency("com.fika.headless", BepInDependency.DependencyFlags.SoftDependency)]
-    public sealed class Plugin : BaseUnityPlugin
+    public sealed class Plugin : BasePlugin
     {
         public const string Guid = "com.blackhawk.dynamicmapsextended";
         public const string Name = "DynamicMaps Extended";
-        public const string Version = "2.1.0";
+        public const string Version = "3.0.0";
         public const string BuildLabel = "RELEASE";
 
         public const string DynamicMapsGuid = "com.mpstark.dynamicmaps";
@@ -36,7 +40,11 @@ namespace DynamicMapsExtended
         public const string FikaHeadlessGuid = "com.fika.headless";
 
         internal static Plugin Instance { get; private set; }
-        internal static ManualLogSource Log { get; private set; }
+        internal static new ManualLogSource Log { get; private set; }
+
+        // SPT 5.0 runs EFT as IL2CPP: a BepInEx 6 plugin is not a MonoBehaviour, so Update,
+        // OnDestroy and every coroutine run on this injected component instead.
+        internal static PluginRunner Runner { get; private set; }
         internal static ConfigEntry<bool> DebugLogging { get; private set; }
         internal static bool DebugEnabled => DebugLogging != null && DebugLogging.Value;
 
@@ -46,10 +54,10 @@ namespace DynamicMapsExtended
         private Harmony _harmony;
         private bool _disabledForHeadless;
 
-        private void Awake()
+        public override void Load()
         {
             Instance = this;
-            Log = Logger;
+            Log = base.Log;
             ExtensionRoot = System.IO.Path.GetDirectoryName(typeof(Plugin).Assembly.Location);
 
             // Fika Headless is a non-visual raid host. DynamicMaps Extended is a client/UI
@@ -59,8 +67,7 @@ namespace DynamicMapsExtended
             if (PluginDetection.Loaded(FikaHeadlessGuid))
             {
                 _disabledForHeadless = true;
-                Logger.LogInfo($"{Name} {Version}: Fika Headless detected ({FikaHeadlessGuid}) - client/UI functionality disabled. No Harmony patches or artwork workers were started.");
-                enabled = false;
+                Log.LogInfo($"{Name} {Version}: Fika Headless detected ({FikaHeadlessGuid}) - client/UI functionality disabled. No Harmony patches or artwork workers were started.");
                 return;
             }
 
@@ -76,14 +83,16 @@ namespace DynamicMapsExtended
             {
                 if (DebugEnabled)
                 {
-                    Logger.LogInfo("[DMExt:DBG] Debug logging enabled from F12.");
+                    Log.LogInfo("[DMExt:DBG] Debug logging enabled from F12.");
                     LogDiagnosticSnapshot("F12 enabled");
                 }
                 else
                 {
-                    Logger.LogInfo("[DMExt] Debug logging disabled.");
+                    Log.LogInfo("[DMExt] Debug logging disabled.");
                 }
             };
+
+            Runner = AddComponent<PluginRunner>();
 
             _harmony = new Harmony(Guid);
             _harmony.PatchAll();
@@ -91,36 +100,49 @@ namespace DynamicMapsExtended
             TilePackManager.Initialize();
             BundledAssetAvailability.Initialize();
 
-            Logger.LogInfo($"{Name} {Version} {BuildLabel} loaded");
-            Logger.LogInfo($"Extension root: {ExtensionRoot}");
-            Logger.LogInfo("Artwork is resolved per floor. Recommended prefers locally prepared Satellite artwork; missing Satellite floors stay on their original DynamicMaps artwork. Raster loading is on-demand and asynchronous.");
-            Logger.LogInfo("DynamicMaps keeps ownership of player tracking, quest/extract markers, minimap, floor selection and all marker providers.");
-            Logger.LogInfo("Fika is not patched; this addon creates no Fika packets and contains no multiplayer synchronization code.");
+            Log.LogInfo($"{Name} {Version} {BuildLabel} loaded");
+            Log.LogInfo($"Extension root: {ExtensionRoot}");
+            Log.LogInfo("Artwork is resolved per floor. Recommended prefers locally prepared Satellite artwork; missing Satellite floors stay on their original DynamicMaps artwork. Raster loading is on-demand and asynchronous.");
+            Log.LogInfo("DynamicMaps keeps ownership of player tracking, quest/extract markers, minimap, floor selection and all marker providers.");
+            Log.LogInfo("Fika is not patched; this addon creates no Fika packets and contains no multiplayer synchronization code.");
 
             if (DebugEnabled)
                 LogDiagnosticSnapshot("startup");
         }
 
-        private void Update()
+        public override bool Unload()
         {
-            if (!_disabledForHeadless) FrameDiagnostics.Update();
+            Shutdown();
+            return true;
         }
 
-        private void OnDestroy()
+        internal static Coroutine StartWorker(IEnumerator routine)
+            => Runner == null ? null : Runner.StartCoroutine(routine);
+
+        internal static void StopWorker(Coroutine coroutine)
         {
+            if (Runner != null && coroutine != null)
+                Runner.StopCoroutine(coroutine);
+        }
+
+        internal void Shutdown()
+        {
+            if (Instance == null)
+                return;
+
             if (_disabledForHeadless)
             {
                 Instance = null;
                 return;
             }
 
-            
             RaidWarmCacheManager.Shutdown();
             TilePackManager.Shutdown();
             RasterWarmupManager.Shutdown();
             RasterSpritePatch.ReleaseAll("plugin shutdown");
             _harmony?.UnpatchSelf();
             Instance = null;
+            Runner = null;
         }
 
         internal static void Debug(string message)
@@ -149,6 +171,21 @@ namespace DynamicMapsExtended
             Debug($"Factory Classic packaged map: {FactoryClassicAssets.Describe()}");
             Debug($"Extension asset readiness: {ExtensionAssetAvailability.Describe()}");
             Debug($"Bundled artwork: {BundledAssetAvailability.Describe()}");
+        }
+    }
+
+    internal sealed class PluginRunner : MonoBehaviour
+    {
+        public PluginRunner(IntPtr pointer) : base(pointer) { }
+
+        private void Update()
+        {
+            FrameDiagnostics.Update();
+        }
+
+        private void OnDestroy()
+        {
+            Plugin.Instance?.Shutdown();
         }
     }
 }

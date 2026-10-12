@@ -171,7 +171,7 @@ namespace DynamicMapsExtended
             WarmUnavailable.Clear();
 
             if (_worker != null && Plugin.Instance != null)
-                Plugin.Instance.StopCoroutine(_worker);
+                Plugin.StopWorker(_worker);
 
             _worker = null;
         }
@@ -179,7 +179,7 @@ namespace DynamicMapsExtended
         private static void EnsureWorker()
         {
             if (_worker == null && Plugin.Instance != null)
-                _worker = Plugin.Instance.StartCoroutine(ProcessQueue());
+                _worker = Plugin.StartWorker(ProcessQueue());
         }
 
         private static WorkItem DequeueNext()
@@ -290,7 +290,13 @@ namespace DynamicMapsExtended
                 {
                     RasterSpritePatch.TryGetCached(item.Path, out var current);
                     if (!IsWarmSprite(current))
-                        yield return UpgradeSelectedFloorToWarmAtlas(item, warmPath);
+                    {
+                        // Run the nested step inline: IL2CPP coroutine wrappers do not reliably
+                        // nest managed IEnumerators the way Mono Unity did.
+                        var upgrade = UpgradeSelectedFloorToWarmAtlas(item, warmPath);
+                        while (upgrade.MoveNext())
+                            yield return upgrade.Current;
+                    }
                 }
             }
 

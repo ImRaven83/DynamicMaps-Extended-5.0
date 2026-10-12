@@ -33,7 +33,7 @@ namespace DynamicMapsExtended
 
         private static ViewportState CaptureViewport(object candidate)
         {
-            if (!(candidate is Component view) || !(view.transform is RectTransform rect))
+            if (!(candidate is Component view) || !(view.transform.TryCast<RectTransform>() is RectTransform rect))
                 return null;
             var type = candidate.GetType();
             return new ViewportState
@@ -62,7 +62,7 @@ namespace DynamicMapsExtended
             // Public zoom setters schedule DOTweens. Cancel them without completing stale
             // destinations, then commit the actual transform and marker scales immediately.
             StopViewTweens(candidate);
-            var rect = (RectTransform)((Component)candidate).transform;
+            var rect = ((Component)candidate).transform.Cast<RectTransform>();
             rect.localScale = Vector3.one * activeZoom;
             rect.anchoredPosition = visiblePosition;
             var mainPosition = state.IsMini
@@ -91,8 +91,8 @@ namespace DynamicMapsExtended
         private static void StopViewTweens(object candidate)
         {
             _killTweenMethod ??= AccessTools.Method(AccessTools.TypeByName("DG.Tweening.DOTween"),
-                "Kill", new[] { typeof(object), typeof(bool) });
-            if (_killTweenMethod == null) throw new MissingMethodException("DOTween.Kill(object,bool)");
+                "Kill", new[] { typeof(Il2CppSystem.Object), typeof(bool) });
+            if (_killTweenMethod == null) throw new MissingMethodException("DOTween.Kill(Il2CppSystem.Object,bool)");
             _killTweenMethod.Invoke(null, new object[] { ((Component)candidate).transform, false });
             foreach (var child in MarkerTransforms(candidate))
                 _killTweenMethod.Invoke(null, new object[] { child, false });
@@ -103,7 +103,7 @@ namespace DynamicMapsExtended
             var screenType = (_screenType ??= AccessTools.TypeByName("DynamicMaps.UI.ModdedMapScreen"));
             if (screenType == null) return;
             var viewField = AccessTools.Field(screenType, "_mapView");
-            foreach (var screen in Resources.FindObjectsOfTypeAll(screenType))
+            foreach (var screen in Il2CppCompat.FindObjectsOfTypeAll(screenType))
                 if (ReferenceEquals(viewField?.GetValue(screen), mapView))
                 {
                     AccessTools.Field(screenType, "_targetZoom")?.SetValue(screen, 0f);
@@ -158,7 +158,7 @@ namespace DynamicMapsExtended
                     return null;
 
                 _currentMapDefProperty ??= AccessTools.Property(viewType, "CurrentMapDef");
-                var views = Resources.FindObjectsOfTypeAll(viewType);
+                var views = Il2CppCompat.FindObjectsOfTypeAll(viewType);
                 if (views == null)
                     return null;
 
@@ -209,7 +209,7 @@ namespace DynamicMapsExtended
                 return false;
 
             _dropdownField ??= AccessTools.Field(screenType, "_mapSelectDropdown");
-            var screens = Resources.FindObjectsOfTypeAll(screenType);
+            var screens = Il2CppCompat.FindObjectsOfTypeAll(screenType);
             if (screens == null || screens.Length == 0)
                 return false;
 
@@ -251,7 +251,7 @@ namespace DynamicMapsExtended
             if (_currentMapDefProperty == null || _maskTransformField == null)
                 return;
 
-            var views = Resources.FindObjectsOfTypeAll(viewType);
+            var views = Il2CppCompat.FindObjectsOfTypeAll(viewType);
             if (views == null)
                 return;
 
@@ -270,7 +270,7 @@ namespace DynamicMapsExtended
                 // UnloadMap destroys every marker, including the live player and provider-owned
                 // trail. LoadMap only restores static markers. Update geometry in place instead.
                 var bounds = AccessTools.Property(mapDef.GetType(), "Bounds")?.GetValue(mapDef);
-                if (bounds == null || !(view.transform is RectTransform rect))
+                if (bounds == null || !(view.transform.TryCast<RectTransform>() is RectTransform rect))
                     continue;
                 var min = (Vector2)AccessTools.Property(bounds.GetType(), "Min").GetValue(bounds);
                 var max = (Vector2)AccessTools.Property(bounds.GetType(), "Max").GetValue(bounds);

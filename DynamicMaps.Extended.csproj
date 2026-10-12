@@ -1,59 +1,46 @@
 <Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    SPT 5.0 runs Escape from Tarkov as an IL2CPP build loaded by BepInEx 6 (BepInEx.Unity.IL2CPP)
+    on .NET 10. Unity and game types are referenced through the Il2CppInterop assemblies that
+    BepInEx generates into BepInEx/interop on first launch.
+  -->
   <PropertyGroup>
-    <TargetFramework>netstandard2.1</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <AssemblyName>DynamicMaps.Extended</AssemblyName>
     <RootNamespace>DynamicMapsExtended</RootNamespace>
-    <Version>2.1.0</Version>
-    <LangVersion>12.0</LangVersion>
+    <Version>3.0.0</Version>
+    <LangVersion>latest</LangVersion>
     <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
     <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
     <Deterministic>true</Deterministic>
+    <GenerateDependencyFile>false</GenerateDependencyFile>
+    <CopyLocalLockFileAssemblies>false</CopyLocalLockFileAssemblies>
     <SptRoot Condition="'$(SptRoot)' == ''">C:\SPT</SptRoot>
-    <ManagedDir>$(SptRoot)\EscapeFromTarkov_Data\Managed</ManagedDir>
     <BepInExCore>$(SptRoot)\BepInEx\core</BepInExCore>
+    <InteropDir>$(SptRoot)\BepInEx\interop</InteropDir>
   </PropertyGroup>
 
   <ItemGroup>
     <Compile Include="src/**/*.cs" />
-    <Reference Include="BepInEx">
-      <HintPath>$(BepInExCore)\BepInEx.dll</HintPath>
-      <Private>false</Private>
-    </Reference>
-    <Reference Include="0Harmony">
-      <HintPath>$(BepInExCore)\0Harmony.dll</HintPath>
-      <Private>false</Private>
-    </Reference>
-    <Reference Include="Newtonsoft.Json">
-      <HintPath>$(ManagedDir)\Newtonsoft.Json.dll</HintPath>
-      <Private>false</Private>
-    </Reference>
-    <Reference Include="UnityEngine">
-      <HintPath>$(ManagedDir)\UnityEngine.dll</HintPath>
-      <Private>false</Private>
-    </Reference>
-    <Reference Include="UnityEngine.CoreModule">
-      <HintPath>$(ManagedDir)\UnityEngine.CoreModule.dll</HintPath>
-      <Private>false</Private>
-    </Reference>
-    <Reference Include="UnityEngine.UIModule">
-      <HintPath>$(ManagedDir)\UnityEngine.UIModule.dll</HintPath>
-      <Private>false</Private>
-    </Reference>
-    <Reference Include="UnityEngine.ImageConversionModule">
-      <HintPath>$(ManagedDir)\UnityEngine.ImageConversionModule.dll</HintPath>
-      <Private>false</Private>
-    </Reference>
-    <Reference Include="UnityEngine.UnityWebRequestModule">
-      <HintPath>$(ManagedDir)\UnityEngine.UnityWebRequestModule.dll</HintPath>
-      <Private>false</Private>
-    </Reference>
-    <Reference Include="UnityEngine.UnityWebRequestTextureModule">
-      <HintPath>$(ManagedDir)\UnityEngine.UnityWebRequestTextureModule.dll</HintPath>
-      <Private>false</Private>
-    </Reference>
-    <Reference Include="UnityEngine.AIModule">
-      <HintPath>$(ManagedDir)\UnityEngine.AIModule.dll</HintPath>
-      <Private>false</Private>
-    </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="$(BepInExCore)\BepInEx.Core.dll" Private="false" />
+    <Reference Include="$(BepInExCore)\BepInEx.Unity.IL2CPP.dll" Private="false" />
+    <Reference Include="$(BepInExCore)\BepInEx.Unity.Common.dll" Private="false" />
+    <Reference Include="$(BepInExCore)\0Harmony.dll" Private="false" />
+    <Reference Include="$(BepInExCore)\Il2CppInterop.Runtime.dll" Private="false" />
+    <Reference Include="$(BepInExCore)\Il2CppInterop.Common.dll" Private="false" />
+    <Reference Include="$(InteropDir)\Il2Cppmscorlib.dll" Private="false" />
+    <Reference Include="$(InteropDir)\Il2CppSystem.dll" Private="false" />
+    <Reference Include="$(InteropDir)\UnityEngine.dll" Private="false" />
+    <Reference Include="$(InteropDir)\UnityEngine.CoreModule.dll" Private="false" />
+    <Reference Include="$(InteropDir)\UnityEngine.UIModule.dll" Private="false" />
+    <Reference Include="$(InteropDir)\UnityEngine.UI.dll" Private="false" />
+    <Reference Include="$(InteropDir)\UnityEngine.ImageConversionModule.dll" Private="false" />
+    <Reference Include="$(InteropDir)\UnityEngine.UnityWebRequestModule.dll" Private="false" />
+    <Reference Include="$(InteropDir)\UnityEngine.UnityWebRequestTextureModule.dll" Private="false" />
+    <Reference Include="$(InteropDir)\UnityEngine.AIModule.dll" Private="false" />
   </ItemGroup>
 </Project>

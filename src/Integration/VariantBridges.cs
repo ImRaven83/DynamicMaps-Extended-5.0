@@ -1,5 +1,5 @@
 using System;
-using BepInEx.Bootstrap;
+using BepInEx.Unity.IL2CPP;
 using HarmonyLib;
 
 namespace DynamicMapsExtended
@@ -26,7 +26,7 @@ namespace DynamicMapsExtended
     internal static class PluginDetection
     {
         internal static bool Loaded(string guid)
-            => !string.IsNullOrEmpty(guid) && Chainloader.PluginInfos != null && Chainloader.PluginInfos.ContainsKey(guid);
+            => !string.IsNullOrEmpty(guid) && IL2CPPChainloader.Instance?.Plugins != null && IL2CPPChainloader.Instance.Plugins.ContainsKey(guid);
     }
 
     internal static class MapVariantsBridge

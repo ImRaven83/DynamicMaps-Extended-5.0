@@ -37,7 +37,7 @@ namespace DynamicMapsExtended
             CancelWorker();
             var generation = ++_generation;
             _status = "waiting for stable raid frames";
-            _worker = Plugin.Instance.StartCoroutine(WarmCurrentRaid(generation, reason));
+            _worker = Plugin.StartWorker(WarmCurrentRaid(generation, reason));
             Plugin.Debug($"Raid warm cache scheduled: reason={reason}.");
         }
 
@@ -65,7 +65,7 @@ namespace DynamicMapsExtended
         private static void CancelWorker()
         {
             if (_worker != null && Plugin.Instance != null)
-                Plugin.Instance.StopCoroutine(_worker);
+                Plugin.StopWorker(_worker);
             _worker = null;
         }
 

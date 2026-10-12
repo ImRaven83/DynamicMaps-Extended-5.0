@@ -1,5 +1,17 @@
 # Changelog
 
+## 3.0.0
+
+Port to SPT 5.0, which runs EFT as an IL2CPP build under BepInEx 6 (`BepInEx.Unity.IL2CPP`, .NET 10). Not compatible with SPT 4.1.x; use 2.1.0 there.
+
+- Plugin is now a `BasePlugin`; updates, shutdown and coroutines run on an injected `PluginRunner` component.
+- Compile against BepInEx 6 core and the generated `BepInEx/interop` assemblies; target `net10.0`.
+- Read the bundled asset manifest with `System.Text.Json` (managed Newtonsoft.Json is not available under IL2CPP).
+- Resolve DynamicMaps' injected components (`MapView`, `ModdedMapScreen`) through Il2CppInterop when searching scene objects.
+- Use `TryCast` for `RectTransform` lookups and typed `RawImage`/`Mask`/`RectMask2D` access for high-resolution tiles.
+- Plugin detection uses `IL2CPPChainloader`; DOTween tween cancellation uses the IL2CPP `DOTween.Kill` signature.
+- Artwork, calibration, manifests and map definitions are unchanged.
+
 ## 2.1.0
 
 - Bundle all 42 prepared raster layers in the complete installation ZIP.
@@ -30,4 +42,4 @@ Major architecture and feature release for SPT 4.1.x.
 
 ## 1.0.0
 
-Initial public release.
+Initial public release.

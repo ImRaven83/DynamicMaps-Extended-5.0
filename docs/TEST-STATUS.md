@@ -1,3 +1,7 @@
+# 3.0.0 validation (SPT 5.0)
+
+3.0.0 compiles against the SPT 5.0 BepInEx 6 IL2CPP core and interop assemblies. It has not yet been run in-game. The DynamicMaps and MapVariants integration is reflection-based and assumes their SPT 5.0 builds keep the 4.1 type, member and plugin GUID names (`com.mpstark.dynamicmaps`, `com.lennoxp90.mapvariants`, `DynamicMaps.UI.Components.MapView`, ...). Any rename there must be mirrored in `src/`.
+
 # 2.1.0 validation
 
 The release retains the renderer and atomic viewport behavior from the successfully tested local Fix 7. Release cleanup removes unreachable downloader hooks, unused manifest fields, obsolete raster experiments and stale documentation; it does not change rendering algorithms or calibration.

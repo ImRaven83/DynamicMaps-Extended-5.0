@@ -11,14 +11,14 @@ function Rel([string]$Path) { return $Path.Replace('/', [IO.Path]::DirectorySepa
 
 try {
     Write-Host '============================================================='
-    Write-Host ' DynamicMaps Extended 2.1.0'
+    Write-Host ' DynamicMaps Extended 3.0.0 (SPT 5.0 / BepInEx 6 IL2CPP)'
     Write-Host '============================================================='
     Write-Host ''
     Write-Host 'Build is OFFLINE. It does not download map artwork.'
     Write-Host 'Complete release ZIPs must include prepared map artwork. The DLL never downloads or generates maps.'
     Write-Host ''
 
-    if ([string]::IsNullOrWhiteSpace($SptRoot)) { $SptRoot = Read-Host 'Enter your SPT 4.1.x root folder' }
+    if ([string]::IsNullOrWhiteSpace($SptRoot)) { $SptRoot = Read-Host 'Enter your SPT 5.0.x root folder' }
     if ([string]::IsNullOrWhiteSpace($SptRoot)) { throw 'No SPT folder was provided.' }
     $SptRoot = [IO.Path]::GetFullPath($SptRoot.Trim('"'))
     if (-not (Test-Path -LiteralPath $SptRoot -PathType Container)) { throw "SPT folder does not exist: $SptRoot" }
@@ -32,10 +32,21 @@ try {
     Write-Host "DynamicMaps: $($dynamicMapsDll.FullName)"
     Write-Host "MapVariants: $($mapVariantsDll.FullName)"
 
-    $managedDir = Join-Path $SptRoot 'EscapeFromTarkov_Data\Managed'
-    $newtonsoft = Join-Path $managedDir 'Newtonsoft.Json.dll'
-    if (-not (Test-Path -LiteralPath $newtonsoft -PathType Leaf)) { throw "Required JSON assembly is missing: $newtonsoft" }
-    Write-Host 'Validated Newtonsoft.Json for the built-in asset manifest reader.' -ForegroundColor Green
+    # SPT 5.0 runs EFT under IL2CPP. BepInEx 6 generates the Unity/game interop assemblies into
+    # BepInEx\interop on the first game launch; the project compiles against those.
+    $coreDir = Join-Path $SptRoot 'BepInEx\core'
+    $interopDir = Join-Path $SptRoot 'BepInEx\interop'
+    foreach ($required in @(
+        (Join-Path $coreDir 'BepInEx.Unity.IL2CPP.dll'),
+        (Join-Path $coreDir 'Il2CppInterop.Runtime.dll'),
+        (Join-Path $interopDir 'Il2Cppmscorlib.dll'),
+        (Join-Path $interopDir 'UnityEngine.CoreModule.dll'),
+        (Join-Path $interopDir 'UnityEngine.UI.dll'))) {
+        if (-not (Test-Path -LiteralPath $required -PathType Leaf)) {
+            throw "Required BepInEx 6 IL2CPP assembly is missing: $required. Install SPT 5.0 and start the game once so BepInEx generates BepInEx\interop."
+        }
+    }
+    Write-Host 'Validated BepInEx 6 IL2CPP core and interop assemblies.' -ForegroundColor Green
 
     $mapsRoot = Join-Path $SourceRoot 'Maps'
     $assetMetaRoot = Join-Path $SourceRoot 'Assets'
@@ -189,7 +200,7 @@ try {
     foreach ($doc in @('ARTWORK-MATRIX.md','BUNDLED-MAPS.md','TEST-STATUS.md')) { Copy-Item -LiteralPath (Join-Path $SourceRoot ('docs/' + $doc)) -Destination $docsOut }
 
     if (-not (Test-Path -LiteralPath $releaseRoot)) { New-Item -ItemType Directory -Force -Path $releaseRoot | Out-Null }
-    $zip=Join-Path $releaseRoot 'DynamicMaps-Extended-2.1.0-base.zip'
+    $zip=Join-Path $releaseRoot 'DynamicMaps-Extended-3.0.0-base.zip'
     if (Test-Path -LiteralPath $zip) { Remove-Item -LiteralPath $zip -Force }
     Compress-Archive -Path (Join-Path $stageRoot '*') -DestinationPath $zip -Force
 

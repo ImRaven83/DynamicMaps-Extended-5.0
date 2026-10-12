@@ -120,7 +120,7 @@ namespace DynamicMapsExtended
             if (layerDef == null || !TryGetArtworkBounds(RasterSpritePatch.GetLayerImagePath(mapLayer), resolution, layerDef, out var desired))
                 return;
 
-            if (!(component.transform is RectTransform rect))
+            if (!(component.transform.TryCast<RectTransform>() is RectTransform rect))
                 return;
 
             var size = desired.Size;
@@ -252,4 +252,4 @@ namespace DynamicMapsExtended
         private static string Normalize(string path)
             => path.Replace('\\', '/').Trim().ToLowerInvariant();
     }
-}
+}

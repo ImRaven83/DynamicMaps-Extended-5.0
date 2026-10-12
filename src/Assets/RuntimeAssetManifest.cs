@@ -1,24 +1,24 @@
 using System.Collections.Generic;
-using Newtonsoft.Json;
+using System.Text.Json.Serialization;
 
 namespace DynamicMapsExtended
 {
     // Runtime reads only installation paths. Full provenance remains in the packaged JSON.
     internal sealed class RuntimeAssetManifest
     {
-        [JsonProperty("assets")] public List<RuntimeAssetEntry> Assets { get; set; }
+        [JsonPropertyName("assets")] public List<RuntimeAssetEntry> Assets { get; set; }
     }
 
     internal sealed class RuntimeAssetEntry
     {
-        [JsonProperty("id")] public string Id { get; set; }
-        [JsonProperty("pack")] public RuntimeAssetPath Pack { get; set; }
-        [JsonProperty("preview")] public RuntimeAssetPath Preview { get; set; }
-        [JsonProperty("warm")] public RuntimeAssetPath Warm { get; set; }
+        [JsonPropertyName("id")] public string Id { get; set; }
+        [JsonPropertyName("pack")] public RuntimeAssetPath Pack { get; set; }
+        [JsonPropertyName("preview")] public RuntimeAssetPath Preview { get; set; }
+        [JsonPropertyName("warm")] public RuntimeAssetPath Warm { get; set; }
     }
 
     internal sealed class RuntimeAssetPath
     {
-        [JsonProperty("outputPath")] public string OutputPath { get; set; }
+        [JsonPropertyName("outputPath")] public string OutputPath { get; set; }
     }
 }

@@ -1,4 +1,4 @@
-# Licensing status for DynamicMaps Extended 2.1.0
+# Licensing status for DynamicMaps Extended 3.0.0
 
 Project code is covered by the repository MIT license. Dependencies are installed separately; their DLLs are not redistributed.
 

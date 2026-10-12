@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using HarmonyLib;
 using UnityEngine;
 using UnityEngine.Networking;
+using UnityEngine.UI;
 
 namespace DynamicMapsExtended
 {
@@ -126,7 +127,7 @@ namespace DynamicMapsExtended
                 Pack = pack;
                 Abstract = IsAbstractPreview(previewPath);
                 if (Abstract && layer is Component component && _mapViewType != null)
-                    MapView = component.GetComponentInParent(_mapViewType) as Component;
+                    MapView = Il2CppCompat.GetComponentInParent(component, _mapViewType) as Component;
                 EarliestDecodeFrame = Time.frameCount + InitialDecodeQuietFrames;
             }
         }
@@ -154,15 +155,8 @@ namespace DynamicMapsExtended
         private static int _activeDecodePixels;
         private static readonly HashSet<string> InFlightTiles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         private static int _nextDecodeStartFrame;
-        private static Type _rawImageType;
         private static Type _mapViewType;
         private static PropertyInfo _isMiniMapActiveProperty;
-        private static Type _rectMaskType;
-        private static Type _maskType;
-        private static PropertyInfo _rawTextureProperty;
-        private static PropertyInfo _rawColorProperty;
-        private static PropertyInfo _rawRaycastProperty;
-        private static PropertyInfo _rawUvRectProperty;
         private static PropertyInfo _layerImageProperty;
         private static PropertyInfo _graphicColorProperty;
 
@@ -170,19 +164,6 @@ namespace DynamicMapsExtended
         {
             _mapViewType = AccessTools.TypeByName("DynamicMaps.UI.Components.MapView");
             _isMiniMapActiveProperty = _mapViewType == null ? null : AccessTools.Property(_mapViewType, "IsMiniMapActive");
-            _rectMaskType = AccessTools.TypeByName("UnityEngine.UI.RectMask2D");
-            _maskType = AccessTools.TypeByName("UnityEngine.UI.Mask");
-            _rawImageType = AccessTools.TypeByName("UnityEngine.UI.RawImage");
-            if (_rawImageType == null)
-            {
-                Plugin.Debug("High-resolution tile refinement disabled: UnityEngine.UI.RawImage was not found.");
-                return;
-            }
-
-            _rawTextureProperty = AccessTools.Property(_rawImageType, "texture");
-            _rawColorProperty = AccessTools.Property(_rawImageType, "color");
-            _rawRaycastProperty = AccessTools.Property(_rawImageType, "raycastTarget");
-            _rawUvRectProperty = AccessTools.Property(_rawImageType, "uvRect");
 
             // Best-effort cleanup of stale temporary tile PNGs from a previous crash/session.
             try
@@ -229,7 +210,7 @@ namespace DynamicMapsExtended
                 _generation++; // true map/style selection change invalidates the old async request
 
             if (_worker != null && Plugin.Instance != null)
-                Plugin.Instance.StopCoroutine(_worker);
+                Plugin.StopWorker(_worker);
             _worker = null;
 
             foreach (var state in Layers.ToList())
@@ -290,13 +271,13 @@ namespace DynamicMapsExtended
                     return;
 
                 if (_prewarmWorker != null)
-                    Plugin.Instance.StopCoroutine(_prewarmWorker);
+                    Plugin.StopWorker(_prewarmWorker);
 
                 var tileBytes = Math.Max(1L, (long)pack.TileSize * pack.TileSize * 4L);
                 var memoryCappedTiles = Math.Max(1, (int)(RaidPrewarmMaxBytes / tileBytes));
                 var targetCount = Math.Min(requestedTiles, memoryCappedTiles);
                 var generation = _generation;
-                _prewarmWorker = Plugin.Instance.StartCoroutine(PrewarmCenterWorker(pack, previewPath, targetCount, generation));
+                _prewarmWorker = Plugin.StartWorker(PrewarmCenterWorker(pack, previewPath, targetCount, generation));
                 Plugin.Debug($"High-res raid prewarm queued: {Path.GetFileName(pack.Path)}, targetTiles={targetCount}, tileSize={pack.TileSize}.");
             }
             catch (Exception e)
@@ -410,9 +391,9 @@ namespace DynamicMapsExtended
             foreach (var view in state.Views.Values)
             {
                 if (view == null) continue;
-                var raw = view.GetComponent(_rawImageType);
+                var raw = view.GetComponent<RawImage>();
                 if (raw != null)
-                    _rawColorProperty?.SetValue(raw, color.Value);
+                    raw.color = color.Value;
             }
         }
 
@@ -439,11 +420,11 @@ namespace DynamicMapsExtended
             if (state.Root != null || !(state.Layer.Target is Component component))
                 return;
 
-            var go = new GameObject("DMExt High-Resolution Tiles", typeof(RectTransform));
+            var go = new GameObject("DMExt High-Resolution Tiles");
+            var rect = go.AddComponent<RectTransform>();
             go.layer = component.gameObject.layer;
             go.transform.SetParent(component.transform, false);
 
-            var rect = (RectTransform)go.transform;
             rect.anchorMin = Vector2.zero;
             rect.anchorMax = Vector2.one;
             rect.offsetMin = Vector2.zero;
@@ -668,7 +649,7 @@ namespace DynamicMapsExtended
         private static void EnsureWorker()
         {
             if (_worker == null && Plugin.Instance != null && Layers.Count > 0)
-                _worker = Plugin.Instance.StartCoroutine(Worker());
+                _worker = Plugin.StartWorker(Worker());
         }
 
         private static bool CanStartAnotherDecode(LayerState state)
@@ -714,7 +695,7 @@ namespace DynamicMapsExtended
 
             try
             {
-                Plugin.Instance.StartCoroutine(LoadTileAsync(state, index, generation, key, decodePixels));
+                Plugin.StartWorker(LoadTileAsync(state, index, generation, key, decodePixels));
                 return true;
             }
             catch
@@ -1147,7 +1128,7 @@ namespace DynamicMapsExtended
             if (!component.gameObject.activeInHierarchy)
                 return false;
 
-            var rect = component.transform as RectTransform;
+            var rect = component.transform.TryCast<RectTransform>();
             if (rect == null)
                 return false;
 
@@ -1198,7 +1179,7 @@ namespace DynamicMapsExtended
             if (!(state.Layer.Target is Component component))
                 return;
 
-            var rect = component.transform as RectTransform;
+            var rect = component.transform.TryCast<RectTransform>();
             if (rect == null || rect.rect.width == 0f || rect.rect.height == 0f)
                 return;
 
@@ -1314,9 +1295,10 @@ namespace DynamicMapsExtended
             // the nearest enabled ancestor so nested UI layouts use the tighter viewport.
             for (var parent = rect.parent; parent != null; parent = parent.parent)
             {
-                if (!(parent is RectTransform candidate)) continue;
-                var stencil = _maskType == null ? null : parent.GetComponent(_maskType) as Behaviour;
-                var rectangle = _rectMaskType == null ? null : parent.GetComponent(_rectMaskType) as Behaviour;
+                var candidate = parent.TryCast<RectTransform>();
+                if (candidate == null) continue;
+                var stencil = parent.GetComponent<Mask>();
+                var rectangle = parent.GetComponent<RectMask2D>();
                 if ((stencil != null && stencil.isActiveAndEnabled) ||
                     (rectangle != null && rectangle.isActiveAndEnabled))
                     return candidate;
@@ -1361,7 +1343,7 @@ namespace DynamicMapsExtended
             if (!(state.Layer.Target is Component component))
                 return float.MaxValue;
 
-            var rect = component.transform as RectTransform;
+            var rect = component.transform.TryCast<RectTransform>();
             if (rect == null)
                 return float.MaxValue;
 
@@ -1414,11 +1396,12 @@ namespace DynamicMapsExtended
 
             cached.Stamp = ++_stamp;
 
-            var go = new GameObject($"DMExt Tile {col},{row}", typeof(RectTransform), typeof(CanvasRenderer));
+            var go = new GameObject($"DMExt Tile {col},{row}");
+            var tileRect = go.AddComponent<RectTransform>();
+            go.AddComponent<CanvasRenderer>();
             go.layer = state.Root.layer;
             go.transform.SetParent(state.Root.transform, false);
 
-            var tileRect = (RectTransform)go.transform;
             tileRect.anchorMin = new Vector2(
                 (float)pixelX0 / state.Pack.Width,
                 1f - (float)pixelY1 / state.Pack.Height);
@@ -1430,9 +1413,9 @@ namespace DynamicMapsExtended
             tileRect.localScale = Vector3.one;
             tileRect.localRotation = Quaternion.identity;
 
-            var raw = go.AddComponent(_rawImageType);
-            _rawTextureProperty?.SetValue(raw, cached.Texture);
-            _rawRaycastProperty?.SetValue(raw, false);
+            var raw = go.AddComponent<RawImage>();
+            raw.texture = cached.Texture;
+            raw.raycastTarget = false;
 
             // NVTILES2 can begin/end in the middle of a source tile. Keep the original PNG
             // untouched and crop only its RawImage UVs at runtime so quality is lossless.
@@ -1443,11 +1426,11 @@ namespace DynamicMapsExtended
             var bottomCrop = rawY0 + state.Pack.TileSize - pixelY1;
             var vMin = (float)bottomCrop / state.Pack.TileSize;
             var vHeight = (float)(pixelY1 - pixelY0) / state.Pack.TileSize;
-            _rawUvRectProperty?.SetValue(raw, new Rect(uMin, vMin, uWidth, vHeight));
+            raw.uvRect = new Rect(uMin, vMin, uWidth, vHeight);
 
             var tint = GetLayerColor(state.Layer.Target);
             if (tint.HasValue)
-                _rawColorProperty?.SetValue(raw, tint.Value);
+                raw.color = tint.Value;
 
             go.SetActive(false);
             state.Views[index] = go;
@@ -1588,11 +1571,11 @@ namespace DynamicMapsExtended
             _nextDecodeStartFrame = Time.frameCount + InitialDecodeQuietFrames;
 
             if (_worker != null && Plugin.Instance != null)
-                Plugin.Instance.StopCoroutine(_worker);
+                Plugin.StopWorker(_worker);
             _worker = null;
 
             if (_prewarmWorker != null && Plugin.Instance != null)
-                Plugin.Instance.StopCoroutine(_prewarmWorker);
+                Plugin.StopWorker(_prewarmWorker);
             _prewarmWorker = null;
 
             foreach (var state in Layers.ToList())

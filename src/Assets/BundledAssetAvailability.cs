@@ -1,6 +1,6 @@
 using System;
 using System.IO;
-using Newtonsoft.Json;
+using System.Text.Json;
 namespace DynamicMapsExtended
 {
     // Read-only installation check. Missing files require reinstalling the complete map ZIP.
@@ -12,7 +12,7 @@ namespace DynamicMapsExtended
         {
             try
             {
-                var manifest = JsonConvert.DeserializeObject<RuntimeAssetManifest>(File.ReadAllText(
+                var manifest = JsonSerializer.Deserialize<RuntimeAssetManifest>(File.ReadAllText(
                     Path.Combine(Plugin.ExtensionRoot, "Assets/DMEXT-ASSET-MANIFEST-v2.0.0.json")));
                 foreach (var asset in manifest.Assets)
                 {

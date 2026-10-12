@@ -5,7 +5,7 @@ The complete ZIP contains the addon, all 42 prepared raster packs, 42 previews, 
 Build the base package with `build.ps1`, then use Python 3.11 or newer:
 
 ```text
-python tools/bundle-maps.py --base-zip BASE.zip --plugin-root PREPARED_EXTENDED_FOLDER --output DynamicMaps-Extended-2.1.0-SPT4.1.zip
+python tools/bundle-maps.py --base-zip BASE.zip --plugin-root PREPARED_EXTENDED_FOLDER --output DynamicMaps-Extended-3.0.0-SPT5.0.zip
 ```
 
 The bundler uses metadata from the base ZIP. It verifies the prepared cache's metadata hash, per-layer signature, NVTILES2 index/layout and image dimensions, then checks all ZIP CRCs and writes a SHA-256 sidecar. Source files are read only. ZIP64 is supported; staging files, logs and unrelated cache files are excluded.
