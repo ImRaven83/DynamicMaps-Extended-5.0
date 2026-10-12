@@ -23,7 +23,7 @@ try {
     $SptRoot = [IO.Path]::GetFullPath($SptRoot.Trim('"'))
     if (-not (Test-Path -LiteralPath $SptRoot -PathType Container)) { throw "SPT folder does not exist: $SptRoot" }
 
-    $pluginsRoot = Join-Path $SptRoot 'BepInEx\plugins'
+    $pluginsRoot = Join-Path $SptRoot 'BepInEx/plugins'
     $dynamicMapsDll = Get-ChildItem -LiteralPath $pluginsRoot -Filter 'DynamicMaps.dll' -File -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
     if (-not $dynamicMapsDll) { throw 'DynamicMaps.dll was not found under BepInEx\plugins.' }
     $mapVariantsDll = Get-ChildItem -LiteralPath $pluginsRoot -Filter 'MapVariants.Client.dll' -File -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
@@ -34,8 +34,8 @@ try {
 
     # SPT 5.0 runs EFT under IL2CPP. BepInEx 6 generates the Unity/game interop assemblies into
     # BepInEx\interop on the first game launch; the project compiles against those.
-    $coreDir = Join-Path $SptRoot 'BepInEx\core'
-    $interopDir = Join-Path $SptRoot 'BepInEx\interop'
+    $coreDir = Join-Path $SptRoot 'BepInEx/core'
+    $interopDir = Join-Path $SptRoot 'BepInEx/interop'
     foreach ($required in @(
         (Join-Path $coreDir 'BepInEx.Unity.IL2CPP.dll'),
         (Join-Path $coreDir 'Il2CppInterop.Runtime.dll'),
@@ -190,7 +190,7 @@ try {
     $stageRoot=Join-Path $releaseRoot 'DynamicMaps-Extended'
     if (-not $stageRoot.StartsWith($artifactsRoot + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase)) { throw 'Unsafe stage directory.' }
     if (Test-Path -LiteralPath $stageRoot) { Remove-Item -LiteralPath $stageRoot -Recurse -Force }
-    $pluginOut=Join-Path $stageRoot 'BepInEx\plugins\DynamicMaps-Extended'
+    $pluginOut=Join-Path $stageRoot 'BepInEx/plugins/DynamicMaps-Extended'
     $mapsOut=Join-Path $pluginOut 'Maps'
     $assetMetaOut=Join-Path $pluginOut 'Assets'
     New-Item -ItemType Directory -Force -Path $mapsOut,$assetMetaOut | Out-Null

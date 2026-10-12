@@ -110,7 +110,7 @@ def main():
         args.output.parent.mkdir(parents=True, exist_ok=True)
         report = ('DynamicMaps Extended 3.0.0 - COMPLETE INSTALLATION\n\n'
                   'Includes the release DLL and all 42 prepared raster layers.\n'
-                  'Requires original DynamicMaps, MapVariants and applicable map mods.\n'
+                  'For SPT 5.0. Requires DynamicMaps 2.x; MapVariants and map mods are optional.\n'
                   'Exit SPT and extract into the SPT root, allowing overwrite.\n'
                   'Keep Maps, Assets and AssetCache together with the DLL.\n'
                   'No runtime downloader or map generation is included.\n'

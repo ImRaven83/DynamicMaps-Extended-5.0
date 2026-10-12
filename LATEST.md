@@ -3,6 +3,7 @@
 DynamicMaps Extended **3.0.0**, for **SPT 5.0.x** (EFT IL2CPP, BepInEx 6).
 
 Complete installation: `DynamicMaps-Extended-3.0.0-SPT5.0.zip`.
+Release tag: `v3.0.0`. See `releases/v3.0.0/RELEASE-NOTES.md`.
 
 SPT 4.1.x: use `DynamicMaps-Extended-2.1.0-SPT4.1.zip` (release tag `v2.1.0`, see `releases/v2.1.0/RELEASE-NOTES.md`).
 
