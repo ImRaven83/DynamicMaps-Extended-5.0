@@ -1,6 +1,6 @@
 # DynamicMaps Extended 3.0.0
 
-Artwork and map-variant addon for SPT 5.0.x (BepInEx 6 IL2CPP). Requires **DynamicMaps 2.x** (the SPT 5.0 build) and the SPT 5.0 build of **MapVariants**. Install the appropriate map mods separately to use their corresponding variants.
+Artwork and map-variant addon for SPT 5.0.x (BepInEx 6 IL2CPP). Requires **DynamicMaps 2.x** (the SPT 5.0 build). **MapVariants** is optional: without it, Manimal Interchange and other shared-ID map variants use the native DynamicMaps map, while all artwork styles still work. Install the appropriate map mods separately to use their corresponding variants.
 
 ## Installation
 
@@ -8,7 +8,7 @@ Artwork and map-variant addon for SPT 5.0.x (BepInEx 6 IL2CPP). Requires **Dynam
 2. Extract `DynamicMaps-Extended-3.0.0-SPT5.0.zip` into your SPT root, allowing overwrite.
 3. Keep the included `Maps`, `Assets` and `AssetCache` folders together with the DLL under `BepInEx/plugins/DynamicMaps-Extended/`.
 
-The complete ZIP includes all 42 prepared raster layers. No runtime downloads, map generation, download progress UI or F12 asset-download options remain. Re-extract the complete ZIP if artwork files are missing. Original DynamicMaps and MapVariants are separate dependencies and are not included.
+The complete ZIP includes all 42 prepared raster layers. No runtime downloads, map generation, download progress UI or F12 asset-download options remain. Re-extract the complete ZIP if artwork files are missing. DynamicMaps (and MapVariants, if used) are separate mods and are not included.
 
 SPT 4.1.x users should stay on DynamicMaps Extended 2.1.0; 3.0.0 only loads on SPT 5.0.
 

@@ -13,6 +13,7 @@ Port to SPT 5.0, which runs EFT as an IL2CPP build under BepInEx 6 (`BepInEx.Uni
 - Target DynamicMaps 2.0 (SPT 5.0): hook `MapLayerImageUtils.GetOrLoadCachedSprite` instead of the removed `SvgUtils`, and drop the precache scope patch (`PrecacheCoroutine` no longer exists).
 - DynamicMaps 2.0 draws an `X.svg` layer from the pre-rendered `X.png` beside it. Artwork resolution, map-definition checks and `build.ps1` follow the same rule; Woods, Factory, Streets and Manimal Interchange Abstract SVGs are now shipped pre-rendered (`tools/render-abstract-svgs.py`).
 - Style overrides that point at DynamicMaps-owned artwork load its PNG directly instead of through the old SVG loader.
+- MapVariants is now an optional dependency; without it Extended still loads and shared-ID variants fall back to native DynamicMaps maps.
 - Harmony patches are applied one class at a time, so a missing DynamicMaps hook disables only that feature and is logged.
 - Satellite artwork, calibration, manifests and map definitions are unchanged.
 

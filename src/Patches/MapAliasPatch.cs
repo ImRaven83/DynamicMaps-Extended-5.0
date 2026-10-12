@@ -132,8 +132,8 @@ namespace DynamicMapsExtended
                 return;
             }
 
-            // Defensive compatibility only when the MapVariants API itself cannot be resolved.
-            // MapVariants is a hard dependency, so this should normally never execute.
+            // MapVariants is optional (it may not be installed on SPT 5.0). Without its API,
+            // never infer a backport for shared-ID maps except the Labs artwork choice below.
             var backportLoaded = PluginDetection.Loaded(pluginGuid) && AliasAssetsReady(alias);
             var labsSatelliteFallback = normalized == "laboratory" &&
                                         MapStyleManager.WantsSatelliteArtwork(MapStyleKey.Labs);

@@ -1,6 +1,6 @@
 # Complete map packaging
 
-The complete ZIP contains the addon, all 42 prepared raster packs, 42 previews, 10 warm atlases and 43 provenance/readiness records. Original DynamicMaps and MapVariants remain separate dependencies.
+The complete ZIP contains the addon, all 42 prepared raster packs, 42 previews, 10 warm atlases and 43 provenance/readiness records. DynamicMaps and the optional MapVariants remain separate mods.
 
 Build the base package with `build.ps1`, then use Python 3.11 or newer:
 

@@ -27,10 +27,10 @@ try {
     $dynamicMapsDll = Get-ChildItem -LiteralPath $pluginsRoot -Filter 'DynamicMaps.dll' -File -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
     if (-not $dynamicMapsDll) { throw 'DynamicMaps.dll was not found under BepInEx\plugins.' }
     $mapVariantsDll = Get-ChildItem -LiteralPath $pluginsRoot -Filter 'MapVariants.Client.dll' -File -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
-    if (-not $mapVariantsDll) { throw 'MapVariants.Client.dll was not found under BepInEx\plugins.' }
+    if (-not $mapVariantsDll) { Write-Host 'MapVariants.Client.dll not found (optional): shared-ID map variants will use native DynamicMaps maps.' -ForegroundColor Yellow }
 
     Write-Host "DynamicMaps: $($dynamicMapsDll.FullName)"
-    Write-Host "MapVariants: $($mapVariantsDll.FullName)"
+    if ($mapVariantsDll) { Write-Host "MapVariants: $($mapVariantsDll.FullName)" }
 
     # SPT 5.0 runs EFT under IL2CPP. BepInEx 6 generates the Unity/game interop assemblies into
     # BepInEx\interop on the first game launch; the project compiles against those.

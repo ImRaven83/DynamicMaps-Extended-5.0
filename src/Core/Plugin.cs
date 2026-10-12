@@ -12,7 +12,9 @@ namespace DynamicMapsExtended
 {
     [BepInPlugin("com.blackhawk.dynamicmapsextended", "DynamicMaps Extended", "3.0.0")]
     [BepInDependency("com.mpstark.dynamicmaps", BepInDependency.DependencyFlags.HardDependency)]
-    [BepInDependency("com.lennoxp90.mapvariants", BepInDependency.DependencyFlags.HardDependency)]
+    // Optional on SPT 5.0: without MapVariants, shared-ID maps keep their native DynamicMaps
+    // definition and only artwork-style choices apply.
+    [BepInDependency("com.lennoxp90.mapvariants", BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency("com.lennoxp90.factoryclassic", BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency("com.manimal.interchange", BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency("com.manimal.lighthouse", BepInDependency.DependencyFlags.SoftDependency)]
