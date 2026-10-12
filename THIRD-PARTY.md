@@ -34,7 +34,7 @@ The PNG previews and `.tiles` packs under `Maps/Interchange_Backport/AbstractRas
 
 ## Woods, Factory and Streets Abstract
 
-These maps use the original bundled SVGs through DynamicMaps' vector loader and retain the upstream terms above. Earlier experimental PNG/tile siblings are not included in 2.1.0. Original viewBoxes, margins and calibration are preserved.
+Since 3.0.0 these maps ship as PNGs rasterized offline from the bundled SVGs (`tools/render-abstract-svgs.py`), because DynamicMaps 2.0 for SPT 5.0 has no runtime SVG renderer. They retain the upstream terms above. Original viewBoxes, margins and calibration are preserved.
 
 ## Provenance records
 

@@ -310,7 +310,7 @@ namespace DynamicMapsExtended
                 if (MapForMappingKey(pair.Key) != key)
                     continue;
 
-                if (File.Exists(ExtensionPath(pair.Value)))
+                if (RenderedImage.Exists(ExtensionPath(pair.Value)))
                     return true;
             }
 
@@ -409,6 +409,15 @@ namespace DynamicMapsExtended
                     result = new StyleResolution(map, requested, MapArtMode.Original, imagePath, imagePath, false, true);
             }
 
+            // An extension MapDef may still name an SVG layer directly (Manimal Interchange
+            // Abstract). Point it at the pre-rendered PNG so DMExt loads it asynchronously.
+            if (Path.IsPathRooted(result.ResolvedPath) && RenderedImage.Exists(result.ResolvedPath) &&
+                !string.Equals(RenderedImage.For(result.ResolvedPath), result.ResolvedPath, StringComparison.OrdinalIgnoreCase))
+            {
+                result = new StyleResolution(result.Map, result.Requested, result.Selected, result.OriginalPath,
+                    RenderedImage.For(result.ResolvedPath), result.UsedFallback, result.HasRequestedAsset);
+            }
+
             ResolutionCache[cacheKey] = result;
             LogResolution(result);
             return result;
@@ -424,8 +433,8 @@ namespace DynamicMapsExtended
                 var absolute = Path.GetFullPath(Path.Combine(
                     DynamicMapsBridge.PluginPath,
                     pair.Value.Replace('/', Path.DirectorySeparatorChar)));
-                if (File.Exists(absolute))
-                    return absolute;
+                if (RenderedImage.Exists(absolute))
+                    return RenderedImage.For(absolute);
 
                 Plugin.Debug($"Configured DynamicMaps Vanilla asset is missing on disk: {absolute}");
                 return null;
@@ -445,10 +454,10 @@ namespace DynamicMapsExtended
                     continue;
 
                 var absolute = ExtensionPath(pair.Value);
-                // Use DynamicMaps' cached vector renderer for SVG artwork. Raster-only
-                // artwork (including Manimal Interchange) keeps the tile pipeline.
-                if (File.Exists(absolute))
-                    return absolute;
+                // DynamicMaps 2.0 cannot render SVG, so Abstract SVG artwork resolves to its
+                // pre-rendered PNG and joins the regular asynchronous raster pipeline.
+                if (RenderedImage.Exists(absolute))
+                    return RenderedImage.For(absolute);
 
                 Plugin.Debug($"Configured {label} asset is missing on disk: {absolute}");
                 return null;

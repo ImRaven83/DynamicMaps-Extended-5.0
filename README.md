@@ -1,6 +1,6 @@
 # DynamicMaps Extended 3.0.0
 
-Artwork and map-variant addon for SPT 5.0.x (BepInEx 6 IL2CPP). Requires the SPT 5.0 builds of **DynamicMaps** and **MapVariants**. Install the appropriate map mods separately to use their corresponding variants.
+Artwork and map-variant addon for SPT 5.0.x (BepInEx 6 IL2CPP). Requires **DynamicMaps 2.x** (the SPT 5.0 build) and the SPT 5.0 build of **MapVariants**. Install the appropriate map mods separately to use their corresponding variants.
 
 ## Installation
 
@@ -16,7 +16,7 @@ SPT 4.1.x users should stay on DynamicMaps Extended 2.1.0; 3.0.0 only loads on S
 
 Use F12 → DynamicMaps Extended to select the global artwork mode or a per-map override. Recommended prefers available Satellite artwork; DynamicMaps Vanilla uses the original artwork. Abstract is offered where distinct verified artwork is available. See [the artwork matrix](docs/ARTWORK-MATRIX.md).
 
-Woods, Factory and Streets Abstract use cached SVG artwork through DynamicMaps' renderer for sharp detail at different zoom levels. Manimal Interchange Abstract uses prepared raster previews and high-resolution tiles. Satellite retains its prepared high-resolution tile content, with visible tiles decoded asynchronously and bounded caches.
+DynamicMaps 2.0 for SPT 5.0 no longer renders SVG maps, so Woods, Factory and Streets Abstract ship as PNGs pre-rendered from the bundled SVGs (4096 px on the long side; Factory 2048 px) and load asynchronously like other Extended artwork. Manimal Interchange Abstract uses prepared raster previews and high-resolution tiles. Satellite retains its prepared high-resolution tile content, with visible tiles decoded asynchronously and bounded caches.
 
 Switching artwork updates the current view in place, preserving live markers, tracking and the viewed coordinate. DynamicMaps continues to own marker providers, quests, player trails, floors and minimap behavior. Extended does not patch Fika networking; client/UI functionality is disabled on Fika Headless.
 

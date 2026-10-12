@@ -10,7 +10,11 @@ Port to SPT 5.0, which runs EFT as an IL2CPP build under BepInEx 6 (`BepInEx.Uni
 - Resolve DynamicMaps' injected components (`MapView`, `ModdedMapScreen`) through Il2CppInterop when searching scene objects.
 - Use `TryCast` for `RectTransform` lookups and typed `RawImage`/`Mask`/`RectMask2D` access for high-resolution tiles.
 - Plugin detection uses `IL2CPPChainloader`; DOTween tween cancellation uses the IL2CPP `DOTween.Kill` signature.
-- Artwork, calibration, manifests and map definitions are unchanged.
+- Target DynamicMaps 2.0 (SPT 5.0): hook `MapLayerImageUtils.GetOrLoadCachedSprite` instead of the removed `SvgUtils`, and drop the precache scope patch (`PrecacheCoroutine` no longer exists).
+- DynamicMaps 2.0 draws an `X.svg` layer from the pre-rendered `X.png` beside it. Artwork resolution, map-definition checks and `build.ps1` follow the same rule; Woods, Factory, Streets and Manimal Interchange Abstract SVGs are now shipped pre-rendered (`tools/render-abstract-svgs.py`).
+- Style overrides that point at DynamicMaps-owned artwork load its PNG directly instead of through the old SVG loader.
+- Harmony patches are applied one class at a time, so a missing DynamicMaps hook disables only that feature and is logged.
+- Satellite artwork, calibration, manifests and map definitions are unchanged.
 
 ## 2.1.0
 

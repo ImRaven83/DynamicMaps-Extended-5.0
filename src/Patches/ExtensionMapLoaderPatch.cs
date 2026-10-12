@@ -226,7 +226,8 @@ namespace DynamicMapsExtended
                         continue;
                     }
 
-                    if (File.Exists(absolute) && new FileInfo(absolute).Length > 0)
+                    // DynamicMaps 2.0 draws an SVG reference from its pre-rendered PNG.
+                    if (RenderedImage.Exists(absolute))
                         continue;
 
                     if (WarnedUnavailableDefinitions.Add(definitionPath))
@@ -364,7 +365,7 @@ namespace DynamicMapsExtended
                     if (!nativeAbsolute.StartsWith(dmRoot, StringComparison.OrdinalIgnoreCase))
                         throw new InvalidDataException($"DynamicMaps artwork path escapes DynamicMaps folder: {imagePath}");
 
-                    if (!File.Exists(nativeAbsolute))
+                    if (!RenderedImage.Exists(nativeAbsolute))
                         throw new FileNotFoundException($"Referenced DynamicMaps artwork does not exist: {nativeAbsolute}");
 
                     imagePathProperty.SetValue(layerDef, nativeAbsolute);
@@ -383,7 +384,7 @@ namespace DynamicMapsExtended
 
                 // Only extension-owned paths are made absolute. A missing source file is left
                 // untouched so DynamicMaps can still resolve its own relative artwork naturally.
-                if (File.Exists(absolute))
+                if (RenderedImage.Exists(absolute))
                     imagePathProperty.SetValue(layerDef, absolute);
             }
         }

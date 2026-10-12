@@ -99,6 +99,12 @@ try {
     }
     Write-Host 'Validated upstream structural lock: 10 maps and all 42 runtime tile paths (zoom/transform/bounds/rotation/layers).' -ForegroundColor Green
 
+    # DynamicMaps 2.0 (SPT 5.0) has no SVG renderer: an X.svg layer is drawn from X.png beside it.
+    function RenderedPath([string]$Path) {
+        if ($Path.EndsWith('.svg', [StringComparison]::OrdinalIgnoreCase)) { return [IO.Path]::ChangeExtension($Path, '.png') }
+        return $Path
+    }
+
     # Validate map definitions. Prepared cache PNGs are intentionally absent from this source;
     # all other extension-owned artwork must still be present at build time.
     $mapDefFiles = Get-ChildItem -LiteralPath $mapsRoot -Filter '*.jsonc' -File -Recurse
@@ -109,7 +115,7 @@ try {
             $imagePath = [string]$layerProp.Value.ImagePath
             if ($imagePath.StartsWith('DMROOT/', [StringComparison]::OrdinalIgnoreCase)) {
                 $nativeRel = $imagePath.Substring(7).Replace('/', [IO.Path]::DirectorySeparatorChar)
-                $nativeAsset = Join-Path $dynamicMapsDll.Directory.FullName $nativeRel
+                $nativeAsset = RenderedPath (Join-Path $dynamicMapsDll.Directory.FullName $nativeRel)
                 if (-not (Test-Path -LiteralPath $nativeAsset -PathType Leaf) -or (Get-Item -LiteralPath $nativeAsset).Length -eq 0) {
                     throw "Required DynamicMaps artwork referenced by $($mapDefFile.Name) is missing: $nativeAsset"
                 }
@@ -118,7 +124,7 @@ try {
             if (-not $imagePath.StartsWith('Maps/', [StringComparison]::OrdinalIgnoreCase)) { throw "Unexpected image path in $($mapDefFile.FullName): $imagePath" }
             $normalized = $imagePath.Replace('\','/')
             if ($runtimePreviewPaths.Contains($normalized)) { continue }
-            $assetPath = Join-Path $SourceRoot (Rel $normalized)
+            $assetPath = RenderedPath (Join-Path $SourceRoot (Rel $normalized))
             if (-not (Test-Path -LiteralPath $assetPath -PathType Leaf) -or (Get-Item -LiteralPath $assetPath).Length -eq 0) { throw "Required static map asset is missing: $assetPath" }
             if ($normalized.EndsWith('.png', [StringComparison]::OrdinalIgnoreCase) -and $normalized.IndexOf('/Factory_Classic/', [StringComparison]::OrdinalIgnoreCase) -lt 0) {
                 $tilePath = [IO.Path]::ChangeExtension($assetPath, '.tiles')
@@ -138,6 +144,14 @@ try {
         $p = Join-Path $SourceRoot (Rel $rel)
         if (-not (Test-Path -LiteralPath $p -PathType Leaf) -or (Get-Item -LiteralPath $p).Length -eq 0) { throw "Required Factory Classic file is missing: $p" }
     }
+
+    foreach ($svg in Get-ChildItem -LiteralPath $mapsRoot -Filter '*.svg' -File -Recurse) {
+        $png = RenderedPath $svg.FullName
+        if (-not (Test-Path -LiteralPath $png -PathType Leaf) -or (Get-Item -LiteralPath $png).Length -eq 0) {
+            throw "Pre-rendered PNG for SVG artwork is missing: $png. Run tools/render-abstract-svgs.py."
+        }
+    }
+    Write-Host 'Validated pre-rendered PNGs for all SVG artwork.' -ForegroundColor Green
 
     # Keep current calibrated/Abstract implementation intact.
     $staticAbstract = @(

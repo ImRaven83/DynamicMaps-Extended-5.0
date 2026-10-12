@@ -12,11 +12,11 @@ namespace DynamicMapsExtended
     internal static class RasterSpritePatch
     {
         private static readonly Dictionary<string, Sprite> Cache = new Dictionary<string, Sprite>(StringComparer.OrdinalIgnoreCase);
-        private static readonly Dictionary<string, Sprite> SvgOverrideCache = new Dictionary<string, Sprite>(StringComparer.OrdinalIgnoreCase);
+        // DynamicMaps-owned PNG artwork chosen by an F12 style (for example Manimal Interchange's
+        // "DynamicMaps Vanilla" choice). Loaded the way DynamicMaps loads its own layers.
+        private static readonly Dictionary<string, Sprite> NativeOverrideCache = new Dictionary<string, Sprite>(StringComparer.OrdinalIgnoreCase);
 
         private static PropertyInfo _imagePathProperty;
-        private static PropertyInfo _tesselationIndexProperty;
-        private static MethodInfo _loadSvgFromPathMethod;
         private static MethodInfo _getOrLoadCachedSpriteMethod;
         private static FieldInfo _mapLayerDefField;
         private static PropertyInfo _mapLayerImageProperty;
@@ -26,14 +26,7 @@ namespace DynamicMapsExtended
         private static Sprite _placeholder;
         private static long _estimatedGpuBytes;
 
-        [ThreadStatic] private static bool _inDynamicMapsPrecache;
         [ThreadStatic] private static bool _inMapLayerCreate;
-
-        internal static bool InDynamicMapsPrecache
-        {
-            get => _inDynamicMapsPrecache;
-            set => _inDynamicMapsPrecache = value;
-        }
 
         internal static bool InMapLayerCreate
         {
@@ -43,9 +36,12 @@ namespace DynamicMapsExtended
 
         private static MethodBase TargetMethod()
         {
-            var type = AccessTools.TypeByName("DynamicMaps.Utils.SvgUtils")
-                ?? throw new MissingMemberException("DynamicMaps.Utils.SvgUtils not found");
-            return _getOrLoadCachedSpriteMethod = AccessTools.Method(type, "GetOrLoadCachedSprite")
+            // DynamicMaps 2.0 (SPT 5.0) loads every layer through MapLayerImageUtils.
+            var type = AccessTools.TypeByName("DynamicMaps.Utils.MapLayerImageUtils")
+                ?? throw new MissingMemberException("DynamicMaps.Utils.MapLayerImageUtils not found");
+            var layerDef = AccessTools.TypeByName("DynamicMaps.Data.MapLayerDef")
+                ?? throw new MissingMemberException("DynamicMaps.Data.MapLayerDef not found");
+            return _getOrLoadCachedSpriteMethod = AccessTools.Method(type, "GetOrLoadCachedSprite", new[] { layerDef })
                 ?? throw new MissingMethodException(type.FullName, "GetOrLoadCachedSprite");
         }
 
@@ -62,43 +58,26 @@ namespace DynamicMapsExtended
             var style = MapStyleManager.Resolve(imagePath);
             var resolvedPath = style.ResolvedPath;
 
-            // Any SVG override whose resolved file differs from the MapLayerDef source is loaded
-            // explicitly through DynamicMaps' own SVG loader. This covers both bundled Abstract
-            // artwork and Manimal's "DynamicMaps Vanilla" choice, which deliberately points back
-            // to DynamicMaps' native Interchange SVGs.
-            if (ShouldLoadSvgOverride(imagePath, resolvedPath))
+            // A DynamicMaps-owned image chosen by a style override (e.g. Manimal's "DynamicMaps
+            // Vanilla" choice pointing back at DynamicMaps' Interchange artwork) differs from the
+            // MapLayerDef source, so DynamicMaps' own loader would pick the wrong file.
+            if (ShouldLoadNativeOverride(imagePath, resolvedPath))
             {
-                var key = SvgOverrideCacheKey(__0, resolvedPath);
-                if (SvgOverrideCache.TryGetValue(key, out var overrideCached) && overrideCached != null)
+                if (NativeOverrideCache.TryGetValue(resolvedPath, out var overrideCached) && overrideCached != null)
                 {
                     __result = overrideCached;
                     return false;
                 }
 
-                var sprite = LoadSvgOverride(__0, resolvedPath);
+                var sprite = LoadNativeOverride(resolvedPath);
                 if (sprite != null)
                 {
-                    SvgOverrideCache[key] = sprite;
+                    NativeOverrideCache[resolvedPath] = sprite;
                     __result = sprite;
                     return false;
                 }
 
-                Plugin.Log?.LogWarning($"Could not load map SVG override: {resolvedPath}; falling back to the MapDef source artwork.");
-                __state = Stopwatch.GetTimestamp();
-                return true;
-            }
-
-            // Only precache the artwork style the user is actually using.
-            // If this layer resolves to a DMExt raster (Satellite), skip DynamicMaps' native SVG
-            // precache for that layer. This avoids paying for both styles.
-            if (InDynamicMapsPrecache)
-            {
-                if (IsExtensionOwnedRaster(resolvedPath))
-                {
-                    __result = null;
-                    return false;
-                }
-
+                Plugin.Log?.LogWarning($"Could not load map artwork override: {resolvedPath}; falling back to the MapDef source artwork.");
                 __state = Stopwatch.GetTimestamp();
                 return true;
             }
@@ -135,96 +114,60 @@ namespace DynamicMapsExtended
             return false;
         }
 
-        private static string SvgOverrideCacheKey(object mapLayerDef, string resolvedPath)
+        // Mirrors DynamicMaps 2.0 MapLayerImageUtils: synchronous decode, trilinear, no mips kept
+        // readable. Only used for DynamicMaps-owned files that a style explicitly selects.
+        private static Sprite LoadNativeOverride(string absolutePath)
         {
             try
             {
-                _tesselationIndexProperty ??= AccessTools.Property(mapLayerDef.GetType(), "TesselationIndex");
-                var tess = _tesselationIndexProperty?.GetValue(mapLayerDef)?.ToString() ?? "0";
-                return resolvedPath + "|" + tess;
-            }
-            catch
-            {
-                return resolvedPath + "|0";
-            }
-        }
-
-        private static Sprite LoadSvgOverride(object mapLayerDef, string absolutePath)
-        {
-            try
-            {
-                if (mapLayerDef == null || string.IsNullOrEmpty(absolutePath) || !File.Exists(absolutePath))
+                if (string.IsNullOrEmpty(absolutePath) || !File.Exists(absolutePath))
                     return null;
 
-                _loadSvgFromPathMethod ??= AccessTools.Method(_getOrLoadCachedSpriteMethod.DeclaringType, "LoadSvgFromPath");
-
-                if (_loadSvgFromPathMethod == null)
+                var sw = Stopwatch.StartNew();
+                var texture = new Texture2D(2, 2, TextureFormat.RGBA32, true);
+                if (!texture.LoadImage(File.ReadAllBytes(absolutePath), false))
                 {
-                    Plugin.Debug("DynamicMaps SvgUtils.LoadSvgFromPath was not found; cannot use SVG override.");
+                    UnityEngine.Object.Destroy(texture);
                     return null;
                 }
 
-                var sw = Stopwatch.StartNew();
-                var sprite = _loadSvgFromPathMethod.Invoke(null, new[] { mapLayerDef, absolutePath }) as Sprite;
+                texture.name = "DMExtNativeOverride:" + Path.GetFileName(absolutePath);
+                texture.wrapMode = TextureWrapMode.Clamp;
+                texture.filterMode = FilterMode.Trilinear;
+                texture.anisoLevel = 4;
+                texture.Apply(false, true);
+
+                var sprite = Sprite.Create(texture, new Rect(0, 0, texture.width, texture.height),
+                    new Vector2(0.5f, 0.5f), 100f, 0, SpriteMeshType.FullRect);
+                sprite.name = texture.name;
                 sw.Stop();
 
-                if (sprite != null)
-                    sprite.name = "DMExtSvgOverride:" + Path.GetFileName(absolutePath);
-
                 if (sw.ElapsedMilliseconds >= 5)
-                    Plugin.Debug($"SVG override loaded in {sw.ElapsedMilliseconds} ms: {Path.GetFileName(absolutePath)}");
-                if (sprite != null && Plugin.DebugEnabled)
-                    Plugin.Debug($"SVG mesh ready: {Path.GetFileName(absolutePath)}, vertices={sprite.vertices.Length}, triangles={sprite.triangles.Length / 3}, bounds={sprite.bounds}");
-
+                    Plugin.Debug($"Artwork override loaded in {sw.ElapsedMilliseconds} ms: {Path.GetFileName(absolutePath)} ({texture.width}x{texture.height})");
                 return sprite;
             }
             catch (Exception e)
             {
-                Plugin.Debug("SVG override load failed: " + e);
+                Plugin.Debug("Artwork override load failed: " + e);
                 return null;
             }
         }
 
-        private static bool ShouldLoadSvgOverride(string originalPath, string resolvedPath)
+        private static bool ShouldLoadNativeOverride(string originalPath, string resolvedPath)
         {
-            if (string.IsNullOrEmpty(resolvedPath) ||
-                !resolvedPath.EndsWith(".svg", StringComparison.OrdinalIgnoreCase) ||
-                !Path.IsPathRooted(resolvedPath))
+            if (!IsRasterPath(resolvedPath) || !Path.IsPathRooted(resolvedPath) || IsExtensionOwnedRaster(resolvedPath))
                 return false;
-
-            if (IsExtensionOwnedSvg(resolvedPath))
-                return true;
 
             try
             {
-                var originalAbsolute = ResolveAbsolutePath(originalPath);
+                // DynamicMaps itself would load the rendered PNG of the MapDef source.
+                var originalAbsolute = RenderedImage.For(ResolveAbsolutePath(originalPath));
                 return string.IsNullOrEmpty(originalAbsolute) ||
                        !string.Equals(Path.GetFullPath(originalAbsolute), Path.GetFullPath(resolvedPath), StringComparison.OrdinalIgnoreCase);
             }
             catch
             {
                 return true;
-            }
-        }
-
-        internal static bool IsExtensionOwnedSvg(string imagePath)
-        {
-            if (string.IsNullOrEmpty(imagePath) ||
-                !imagePath.EndsWith(".svg", StringComparison.OrdinalIgnoreCase) ||
-                !Path.IsPathRooted(imagePath))
-                return false;
-
-            try
-            {
-                var full = Path.GetFullPath(imagePath);
-                var root = Path.GetFullPath(Plugin.ExtensionRoot)
-                    .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
-                    + Path.DirectorySeparatorChar;
-                return full.StartsWith(root, StringComparison.OrdinalIgnoreCase);
-            }
-            catch
-            {
-                return false;
             }
         }
 
@@ -348,17 +291,16 @@ namespace DynamicMapsExtended
 
             var source = GetLayerImagePath(mapLayer);
             var resolved = MapStyleManager.Resolve(source).ResolvedPath;
-            if (ShouldLoadSvgOverride(source, resolved))
+            if (ShouldLoadNativeOverride(source, resolved))
             {
-                var key = SvgOverrideCacheKey(GetLayerDef(mapLayer), resolved);
-                return !SvgOverrideCache.TryGetValue(key, out var expected) ||
+                return !NativeOverrideCache.TryGetValue(resolved, out var expected) ||
                        !ReferenceEquals(current, expected);
             }
 
             var name = current.name ?? string.Empty;
             return name.StartsWith("DMExt:", StringComparison.OrdinalIgnoreCase) ||
                    name.StartsWith("DMExtWarm:", StringComparison.OrdinalIgnoreCase) ||
-                   name.StartsWith("DMExtSvgOverride:", StringComparison.OrdinalIgnoreCase);
+                   name.StartsWith("DMExtNativeOverride:", StringComparison.OrdinalIgnoreCase);
         }
 
         internal static bool EnsureLayerSprite(object mapLayer, string reason, bool background = false)
@@ -555,19 +497,22 @@ namespace DynamicMapsExtended
             if (Cache.Count > 0)
                 ReleasePaths(new List<string>(Cache.Keys), reason);
 
-            if (SvgOverrideCache.Count > 0)
+            if (NativeOverrideCache.Count > 0)
             {
                 var released = 0;
-                foreach (var sprite in SvgOverrideCache.Values)
+                foreach (var sprite in NativeOverrideCache.Values)
                 {
                     if (sprite == null) continue;
+                    var texture = sprite.texture;
                     UnityEngine.Object.Destroy(sprite);
+                    if (texture != null)
+                        UnityEngine.Object.Destroy(texture);
                     released++;
                 }
-                SvgOverrideCache.Clear();
+                NativeOverrideCache.Clear();
 
                 if (released > 0)
-                    Plugin.Debug($"Released {released} SVG override sprite(s), reason={reason}.");
+                    Plugin.Debug($"Released {released} artwork override sprite(s), reason={reason}.");
             }
         }
 
@@ -598,7 +543,7 @@ namespace DynamicMapsExtended
         }
 
         internal static string DescribeCache()
-            => $"rasterEntries={Cache.Count}, svgOverrideEntries={SvgOverrideCache.Count}, estimatedRasterRGBA={_estimatedGpuBytes / (1024.0 * 1024.0):F1} MiB";
+            => $"rasterEntries={Cache.Count}, nativeOverrideEntries={NativeOverrideCache.Count}, estimatedRasterRGBA={_estimatedGpuBytes / (1024.0 * 1024.0):F1} MiB";
 
         internal static bool IsExtensionOwnedRaster(string imagePath)
             => IsRasterPath(imagePath) && IsExtensionOwnedPath(imagePath);

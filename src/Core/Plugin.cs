@@ -95,7 +95,7 @@ namespace DynamicMapsExtended
             Runner = AddComponent<PluginRunner>();
 
             _harmony = new Harmony(Guid);
-            _harmony.PatchAll();
+            PatchAllIsolated();
 
             TilePackManager.Initialize();
             BundledAssetAvailability.Initialize();
@@ -108,6 +108,31 @@ namespace DynamicMapsExtended
 
             if (DebugEnabled)
                 LogDiagnosticSnapshot("startup");
+        }
+
+        // Patch class by class: a DynamicMaps update that removes one hook must not stop every
+        // other DMExt patch from applying (Harmony's PatchAll aborts on the first failure).
+        private void PatchAllIsolated()
+        {
+            var failed = 0;
+            foreach (var type in AccessTools.GetTypesFromAssembly(typeof(Plugin).Assembly))
+            {
+                if (type.GetCustomAttributes(typeof(HarmonyPatch), false).Length == 0)
+                    continue;
+
+                try
+                {
+                    _harmony.CreateClassProcessor(type).Patch();
+                }
+                catch (Exception e)
+                {
+                    failed++;
+                    Log.LogWarning($"Patch {type.Name} was not applied; that feature stays inactive: {(e.InnerException ?? e).Message}");
+                }
+            }
+
+            if (failed > 0)
+                Log.LogWarning($"{failed} DynamicMaps Extended patch(es) did not apply. Check that DynamicMaps 2.x for SPT 5.0 is installed.");
         }
 
         public override bool Unload()

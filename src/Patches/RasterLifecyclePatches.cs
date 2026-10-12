@@ -7,57 +7,7 @@ using HarmonyLib;
 
 namespace DynamicMapsExtended
 {
-    // Preserve DynamicMaps' own native/SVG precache, but mark the scope so extension-owned
-    // raster layers can be skipped and warmed only for the active map.
-    [HarmonyPatch]
-    internal static class RasterPrecacheScopePatch
-    {
-        private static MethodBase TargetMethod()
-        {
-            var type = AccessTools.TypeByName("DynamicMaps.UI.ModdedMapScreen")
-                ?? throw new MissingMemberException("DynamicMaps.UI.ModdedMapScreen not found");
-            return AccessTools.Method(type, "PrecacheCoroutine")
-                ?? throw new MissingMethodException(type.FullName, "PrecacheCoroutine");
-        }
-
-        private static void Postfix(ref IEnumerator __result)
-        {
-            if (__result != null)
-                __result = Wrap(__result);
-        }
-
-        private static IEnumerator Wrap(IEnumerator inner)
-        {
-            try
-            {
-                while (true)
-                {
-                    bool moved;
-                    RasterSpritePatch.InDynamicMapsPrecache = true;
-                    try
-                    {
-                        moved = inner.MoveNext();
-                    }
-                    finally
-                    {
-                        RasterSpritePatch.InDynamicMapsPrecache = false;
-                    }
-
-                    if (!moved)
-                        yield break;
-
-                    yield return inner.Current;
-                }
-            }
-            finally
-            {
-                RasterSpritePatch.InDynamicMapsPrecache = false;
-                if (inner is IDisposable disposable)
-                    disposable.Dispose();
-            }
-        }
-    }
-
+    // DynamicMaps 2.0 has no layer precache pass; every layer loads on demand in MapLayer.Create.
     [HarmonyPatch]
     internal static class RasterMapLayerCreateScopePatch
     {
