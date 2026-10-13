@@ -1,6 +1,6 @@
 # 3.0.0 validation (SPT 5.0)
 
-3.0.0 compiles against the SPT 5.0 BepInEx 6 IL2CPP core and interop assemblies. Every DynamicMaps type, member and Harmony parameter name it uses was checked against DynamicMaps 2.0.0 (`com.mpstark.dynamicmaps`, IL2CPP build), and all extension map definitions satisfy DynamicMaps 2.0's required JSON fields. MapVariants is an optional dependency in 3.0.0. MapVariants and FactoryClassic SPT 5.0 builds have not been checked; their integration is reflection-based and degrades to native maps if names changed. Not yet run in-game.
+3.0.0 compiles against the SPT 5.0 BepInEx 6 IL2CPP core and interop assemblies. Every DynamicMaps type, member and Harmony parameter name it uses was checked against DynamicMaps 2.0.0 (`com.mpstark.dynamicmaps`, IL2CPP build), and all extension map definitions satisfy DynamicMaps 2.0's required JSON fields. MapVariants 2.0.0 for SPT 5.0 (client and server) was also checked: the plugin ID and every `MapVariants.Client.Api.Maps` member Extended reads (API 3.0) match. MapVariants stays an optional dependency in 3.0.0. The FactoryClassic SPT 5.0 build has not been checked; their integration is reflection-based and degrades to native maps if names changed. Not yet run in-game.
 
 # 2.1.0 validation
 
