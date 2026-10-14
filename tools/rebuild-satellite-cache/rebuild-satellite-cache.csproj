@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    Offline-release helper: downloads the exact Tarkov.dev source tiles listed in the v2.0.0
+    runtime manifest and rebuilds the 42-layer Satellite cache (NVTILES2 packs, previews,
+    warm atlases and readiness markers). The installer/codec code is the DynamicMaps Extended
+    2.0.0 built-in installer, unchanged apart from the cache-root shim and URL hook.
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>DynamicMapsExtended</RootNamespace>
+    <AssemblyName>rebuild-satellite-cache</AssemblyName>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <!-- HttpWebRequest is obsolete but kept to stay identical to the 2.0.0 installer. -->
+    <NoWarn>$(NoWarn);SYSLIB0014</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+  </ItemGroup>
+</Project>

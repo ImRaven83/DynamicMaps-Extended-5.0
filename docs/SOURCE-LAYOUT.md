@@ -8,7 +8,7 @@
 - `src/UI/`: live-layer artwork refresh.
 - `Assets/`: frozen asset manifest and provenance metadata; v2.0.0 filenames identify the unchanged asset set, not the plugin version.
 - `Maps/`: static artwork and map definitions.
-- `tools/`: offline bundling, regression checks and SVG geometry inspection.
+- `tools/`: offline bundling, Satellite cache rebuild (`rebuild-satellite-cache/`), Abstract SVG pre-rendering, regression checks and SVG geometry inspection.
 - `docs/provenance/` and `third-party/`: original capture records and upstream SVG source/license.
 
 Complete installation ZIPs add 42 preview images, 10 warm atlases and 42 tile packs. Packs are stored under `AssetCache/Packs/` inside the plugin folder. Static Manimal Abstract packs live beside their previews. No runtime download, generation or cache migration is performed.
