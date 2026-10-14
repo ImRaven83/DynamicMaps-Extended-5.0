@@ -4,6 +4,7 @@
 - Works with DynamicMaps 2.0 for SPT 5.0.
 - Abstract maps on Woods, Factory, Streets and Manimal Interchange are now included as ready-made images, because DynamicMaps 2.0 no longer draws SVG maps. They look the same but can soften slightly at very high zoom.
 - MapVariants is now optional. Without it, Manimal Interchange and other shared-ID variants show the normal DynamicMaps map; all artwork styles still work.
+- Fixed an error in DynamicMaps 2.0 on SPT 5.0 that could stop the floor slider and live markers from updating when a map opened.
 - If a future DynamicMaps update removes something Extended hooks into, only that feature turns off and a warning is written to the log, instead of the whole mod stopping.
 - Satellite maps, calibration and map positions are unchanged from 2.1.0.
 
